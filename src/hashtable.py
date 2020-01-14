@@ -11,9 +11,12 @@ class LinkedPair:
         if key == self.key:
             return self.value
         else:
-            return self.next[key]
+            if self.next is not None:
+                return self.next[key]
+            else:
+                return None
 
-    def remove(key, parent=None):
+    def remove(self, key, parent=None):
         if key == self.key:
             if parent:
                 parent.next = self.next
@@ -32,7 +35,16 @@ class HashTable:
     def __init__(self, capacity):
         self.capacity = capacity  # Number of buckets in the hash table
         self.storage = [None] * capacity
+        self.keys = set()
+        self.filled = 0
 
+    def __repr__(self):
+        pairs = []
+        for key in self.keys:
+            value = self.retrieve(key)
+            pairs.append(f'{key}:{value}')
+        return '\n'.join([str(self.capacity), str(self.filled)] + pairs)
+        
 
     def _hash(self, key):
         '''
@@ -71,9 +83,14 @@ class HashTable:
         index = self._hash_mod(key)
         if self.storage[index] is None:
             self.storage[index] = LinkedPair(key, value)
+            self.filled += 1
+            self.keys.add(key)
+            if self.filled == self.capacity:
+                self.resize()
         else:
             new_entry = LinkedPair(key, value, self.storage[index])
             self.storage[index] = new_entry
+            self.keys.add(key)
 
 
     def remove(self, key):
@@ -84,6 +101,8 @@ class HashTable:
 
         Fill this in.
         '''
+        if self.storage is None:
+            raise RuntimeError('remove')
         index = self._hash_mod(key)
         runner = self.storage[index]
         if runner is None:
@@ -96,6 +115,7 @@ class HashTable:
             while runner is not None:
                 if runner.key == key:
                     prev.next = runner.next
+                    self.filled -= 1
                     return
                 else:
                     prev = runner
@@ -113,7 +133,10 @@ class HashTable:
         Fill this in.
         '''
         index = self._hash_mod(key)
-        return self.storage[index][key]
+        if self.storage[index] is None:
+            return None
+        else:
+            return self.storage[index][key]
 
 
     def resize(self):
@@ -123,18 +146,30 @@ class HashTable:
 
         Fill this in.
         '''
-        pass
+        old_storage = self.storage
+        old_capacity = self.capacity
+        self.capacity *= 2
+        self.storage = [None] * self.capacity
+        self.filled = 0
+        for key in self.keys:
+            index = self._hash(key) % old_capacity
+            value = old_storage[index][key]
+            self.insert(key, value)
+
+
+        
 
 
 
 if __name__ == "__main__":
-    ht = HashTable(2)
+    ht = HashTable(1)
 
     ht.insert("line_1", "Tiny hash table")
     ht.insert("line_2", "Filled beyond capacity")
     ht.insert("line_3", "Linked list saves the day!")
 
     print("")
+    print(ht.keys)
 
     # Test storing beyond capacity
     print(ht.retrieve("line_1"))
